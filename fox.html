@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Translators Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@500;700&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14213d;--muted:#5b667a;--line:#d5dce6;--accent:#0b6e6e;--accent-ink:#fff;--warn:#b3361b}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1522;--card:#17212f;--ink:#e8edf5;--muted:#9aa6ba;--line:#2a3649;--accent:#3fb5b0;--accent-ink:#06201f;--warn:#ff8a70}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line)}
+h1,h2{font-family:Newsreader,Georgia,serif;margin:0}
+h1{font-size:1.5rem}
+main{max-width:900px;margin:0 auto;padding:24px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
+label{display:block;font-size:.9rem;color:var(--muted);margin:12px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button{padding:8px 14px;border:0;border-radius:6px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+button.bad{background:var(--warn);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:12px}.row>*{flex:1}
+.job{border-top:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.job:first-child{border-top:0}
+.acts{display:flex;flex-direction:column;gap:6px;min-width:220px}
+.acts input,.acts select,.acts textarea{padding:6px;font-size:.85rem}
+.pair{font-weight:600;color:var(--accent)}
+.meta{color:var(--muted);font-size:.9rem}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+#msg{color:var(--warn);min-height:1.4em}
+.hide{display:none}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.day{display:flex;flex-direction:column;align-items:center;min-height:54px;padding:4px;font-weight:400;background:none;color:var(--ink);border:1px solid var(--line)}
+.day small{font-size:.7rem;color:var(--muted);line-height:1.2}
+.day.today{border-color:var(--accent);border-width:2px}
+.calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+@media(max-width:600px){.row{flex-direction:column}.job{flex-direction:column}.acts{min-width:0;width:100%}}
+</style>
+</head>
+<body>
+<header><h1>Translators Portal</h1><div><span id="who" class="meta"></span> <button id="out" class="ghost hide">Sign out</button></div></header>
+<main>
+<p id="msg" role="alert"></p>
+
+<section id="auth" class="box">
+  <div class="tabs"><button id="t-in" class="on">Log in</button><button id="t-up" class="ghost">Create account</button></div>
+  <div id="up-only" class="hide">
+    <label for="name">Full name</label><input id="name">
+    <label for="role">I am a</label>
+    <select id="role"><option value="translator">Translator</option><option value="client">Client</option></select>
+    <label for="langs">Languages you translate (translators)</label><input id="langs" placeholder="English, Kinyarwanda, French">
+  </div>
+  <label for="email">Email</label><input id="email" type="email" autocomplete="email">
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+  <p><button id="go">Log in</button></p>
+</section>
+
+<section id="app" class="hide">
+  <div id="prof" class="box hide">
+    <label for="mylangs">Your languages (separate with commas)</label>
+    <div class="row"><input id="mylangs"><button id="savel" style="flex:0 0 auto">Save</button></div>
+    <label><input type="checkbox" id="match" style="width:auto"> Only show open jobs in my languages</label>
+    <p id="avg" class="meta"></p>
+  </div>
+  <div id="statbox" class="box hide"><strong id="stats"></strong> <button id="next" class="ghost hide" style="margin-left:12px">Next job</button></div>
+  <div id="post" class="box hide">
+    <h2>Post a translation job</h2>
+    <label for="title">Title</label><input id="title">
+    <div class="row">
+      <div><label for="src">From</label><input id="src" placeholder="English"></div>
+      <div><label for="tgt">To</label><input id="tgt" placeholder="Kinyarwanda"></div>
+      <div><label for="due">Deadline (optional)</label><input id="due" type="date"></div>
+    </div>
+    <label for="desc">Details</label><textarea id="desc" rows="3"></textarea>
+    <label for="file">Document to translate (optional, up to 10 MB)</label><input id="file" type="file">
+    <p><button id="add">Post job</button></p>
+  </div>
+  <div class="box">
+    <div class="tabs"><button id="f-open" class="on">Open jobs</button><button id="f-mine" class="ghost">My jobs</button><button id="f-esc" class="ghost hide">Escalated</button></div>
+    <div id="bulk" class="hide"><div class="tabs"><button id="zipall" class="ghost">Download all finished (zip)</button><button id="csv" class="ghost">Export list (CSV)</button></div><p id="bulkmsg" class="meta"></p></div>
+    <div id="jobs"></div>
+  </div>
+  <div id="calbox" class="box hide">
+    <div class="calh"><button id="cprev" class="ghost" aria-label="Previous month">&lsaquo;</button><h2 id="calt"></h2><button id="cnext" class="ghost" aria-label="Next month">&rsaquo;</button></div>
+    <div id="cal" class="cal"></div>
+    <p id="dayinfo" class="meta">Select a date to see its jobs.</p>
+  </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+const SUPABASE_URL = "https://mreouweizwognlkihaar.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4B37RMDIm0iBefdrLMGZaA_5VmD0tlH";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const ago = s => { const h = (Date.now() - new Date(s)) / 36e5; return h < 1 ? "less than an hour ago" : h < 24 ? Math.floor(h) + " h ago" : Math.floor(h/24) + " d ago"; };
+let lastList = [], me = null, profile = null, signup = false, filter = "open", cache = {}, ev = [], calM = new Date();
+calM.setDate(1);
+const say = t => $("msg").textContent = t || "";
+
+function mode(up) {
+  signup = up;
+  $("up-only").classList.toggle("hide", !up);
+  $("go").textContent = up ? "Create account" : "Log in";
+  $("t-up").className = up ? "on" : "ghost";
+  $("t-in").className = up ? "ghost" : "on";
+}
+$("t-in").onclick = () => mode(false);
+$("t-up").onclick = () => mode(true);
+
+$("go").onclick = async () => {
+  say();
+  const email = $("email").value.trim(), password = $("pw").value;
+  if (signup) {
+    const { data, error } = await db.auth.signUp({ email, password, options: { data: {
+      full_name: $("name").value.trim(), role: $("role").value, languages: $("langs").value.trim() } } });
+    if (error) return say(error.message);
+    if (!data.session) return say("Account created. Check your email to confirm, then log in.");
+  } else {
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error) return say(error.message);
+  }
+  start();
+};
+$("out").onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return;
+  me = session.user;
+  const { data, error } = await db.from("profiles").select("*").eq("id", me.id).single();
+  if (error) return say("Could not load your profile: " + error.message);
+  profile = data;
+  const r = profile.role;
+  $("auth").classList.add("hide");
+  $("app").classList.remove("hide");
+  $("out").classList.remove("hide");
+  $("who").textContent = profile.full_name + " (" + r + ")";
+  $("post").classList.toggle("hide", r !== "client");
+  $("prof").classList.toggle("hide", r !== "translator");
+  $("next").classList.toggle("hide", r !== "translator");
+  $("statbox").classList.toggle("hide", r === "admin");
+  $("calbox").classList.toggle("hide", r === "admin");
+  $("f-mine").classList.toggle("hide", r === "admin");
+  $("f-esc").classList.toggle("hide", r !== "admin");
+  $("mylangs").value = profile.languages || "";
+  setFilter(r === "admin" ? "esc" : "open");
+}
+
+async function upload(file) {
+  if (!file) return null;
+  if (file.size > 10 * 1024 * 1024) { say("That file is over 10 MB."); throw new Error("big"); }
+  const path = me.id + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]/g, "_");
+  const { error } = await db.storage.from("files").upload(path, file);
+  if (error) { say(error.message); throw error; }
+  return path;
+}
+
+$("savel").onclick = async () => {
+  say();
+  const languages = $("mylangs").value.trim();
+  const { error } = await db.from("profiles").update({ languages }).eq("id", me.id);
+  if (error) return say(error.message);
+  profile.languages = languages;
+  loadJobs();
+};
+$("match").onchange = loadJobs;
+
+$("add").onclick = async () => {
+  say();
+  const job = { client_id: me.id, title: $("title").value.trim(), source_lang: $("src").value.trim(),
+    target_lang: $("tgt").value.trim(), description: $("desc").value.trim(), due_at: $("due").value || null };
+  if (!job.title || !job.source_lang || !job.target_lang) return say("Add a title and both languages.");
+  try { const p = await upload($("file").files[0]); if (p) job.file_path = p; } catch { return; }
+  const { error } = await db.from("jobs").insert(job);
+  if (error) return say(error.message);
+  ["title","src","tgt","desc","due","file"].forEach(i => $(i).value = "");
+  loadJobs();
+};
+
+async function setFilter(f) {
+  filter = f;
+  $("f-open").className = f === "open" ? "on" : "ghost";
+  $("f-mine").className = (f === "mine" ? "on" : "ghost") + (profile.role === "admin" ? " hide" : "");
+  $("f-esc").className = (f === "esc" ? "on" : "ghost") + (profile.role !== "admin" ? " hide" : "");
+  await loadJobs();
+}
+$("f-open").onclick = () => setFilter("open");
+$("f-mine").onclick = () => setFilter("mine");
+$("f-esc").onclick = () => setFilter("esc");
+$("next").onclick = async () => {
+  await setFilter("open");
+  const j = document.querySelector("#jobs .job");
+  if (j) j.scrollIntoView({ behavior: "smooth", block: "center" }); else say("No open jobs right now.");
+};
+
+function knows(j) {
+  const mine = (profile.languages || "").toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
+  return mine.includes(j.source_lang.toLowerCase()) && mine.includes(j.target_lang.toLowerCase());
+}
+
+async function loadJobs() {
+  let q = db.from("jobs").select("*, client:client_id(full_name), translator:translator_id(full_name)").order("created_at", { ascending: false });
+  q = filter === "open" ? q.eq("status", "open") : filter === "esc" ? q.eq("status", "escalated")
+    : q.or("client_id.eq." + me.id + ",translator_id.eq." + me.id);
+  const { data, error } = await q;
+  if (error) return say(error.message);
+  let list = data;
+  if (filter === "open" && profile.role === "translator" && $("match").checked) list = list.filter(knows);
+  cache = {}; list.forEach(j => cache[j.id] = j);
+  lastList = list;
+  const r = profile.role;
+  $("bulk").classList.toggle("hide", !(r === "client" && filter === "mine"));
+
+  $("jobs").innerHTML = list.length ? list.map(j => {
+    const isClient = j.client_id === me.id, isTr = r === "translator", mineTr = isTr && j.translator_id === me.id;
+    let a = "";
+    if (j.file_path) a += `<button class="ghost" data-a="dl" data-p="${esc(j.file_path)}">Download document</button>`;
+    if (j.result_path) a += `<button class="ghost" data-a="dl" data-p="${esc(j.result_path)}">Download translation</button>`;
+    if (isTr && j.status === "open") a += `<button data-a="accept" data-id="${j.id}">Accept job</button>`;
+    if (mineTr && j.status === "in_progress") {
+      a += `<textarea rows="3" aria-label="Draft notes" placeholder="Draft notes or partial translation">${esc(j.draft_notes)}</textarea>`;
+      if (j.draft_path) a += `<button class="ghost" data-a="dl" data-p="${esc(j.draft_path)}">Download my draft file</button>`;
+      a += `<input type="file" aria-label="Draft or finished file">
+        <button class="ghost" data-a="draft" data-id="${j.id}">Save draft</button>
+        <button data-a="done" data-id="${j.id}">Mark done</button>
+        <button class="ghost" data-a="ret" data-id="${j.id}">Return to queue</button>
+        <button class="bad" data-a="escalate" data-id="${j.id}">Escalate</button>`;
+    }
+    if (isClient && j.status === "open") a += `<button class="ghost" data-a="edit" data-id="${j.id}">Edit</button><button class="bad" data-a="del" data-id="${j.id}">Delete</button>`;
+    if ((isClient || r === "admin") && j.status === "escalated") a += `<button data-a="reopen" data-id="${j.id}">Return to queue</button>`;
+    if (isClient && j.status === "done" && !j.rating)
+      a += `<select aria-label="Rating"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select><button data-a="rate" data-id="${j.id}">Rate translator</button>`;
+    const stars = j.rating ? ` | Rated ${j.rating}/5${j.review ? ": " + esc(j.review) : ""}` : "";
+    const due = j.due_at ? ` | Due ${esc(j.due_at)}` : "";
+    const draft = mineTr && j.draft_saved_at ? `<div class="meta">Draft saved ${ago(j.draft_saved_at)}</div>` : "";
+    const why = j.status === "escalated" && j.escalation_reason ? `<div class="meta">Escalated: ${esc(j.escalation_reason)}</div>` : "";
+    return `<div class="job"><div>
+      <div><span class="pair">${esc(j.source_lang)} to ${esc(j.target_lang)}</span> &nbsp;${esc(j.title)}</div>
+      <div class="meta">${esc(j.description)}</div>
+      <div class="meta">Client: ${esc(j.client?.full_name)}${j.translator ? " | Translator: " + esc(j.translator.full_name) : ""} | ${esc(j.status.replace("_"," "))}${due}${stars}</div>
+      ${draft}${why}
+    </div><div class="acts">${a}</div></div>`;
+  }).join("") : '<p class="meta">No jobs here yet.</p>';
+
+  if (r !== "admin") panel();
+}
+
+// Counts and calendar data
+async function panel() {
+  const { data } = await db.from("jobs").select("id,title,status,due_at,done_at,rating,client_id,translator_id")
+    .or("client_id.eq." + me.id + ",translator_id.eq." + me.id);
+  ev = data || [];
+  const n = s => ev.filter(e => e.status === s).length, now = new Date();
+  if (profile.role === "translator") {
+    const mine = ev.filter(e => e.translator_id === me.id);
+    const month = mine.filter(e => e.done_at && new Date(e.done_at).getMonth() === now.getMonth() && new Date(e.done_at).getFullYear() === now.getFullYear()).length;
+    const rated = mine.filter(e => e.rating);
+    $("stats").textContent = "Done: " + mine.filter(e => e.status === "done").length + " | This month: " + month +
+      " | In progress: " + mine.filter(e => e.status === "in_progress").length + " | Escalated: " + mine.filter(e => e.status === "escalated").length;
+    $("avg").textContent = rated.length ? "Your rating: " + (rated.reduce((s, x) => s + x.rating, 0) / rated.length).toFixed(1) + " / 5 from " + rated.length + " job" + (rated.length > 1 ? "s" : "") : "No ratings yet.";
+  } else {
+    $("stats").textContent = "Posted: " + ev.length + " | Open: " + n("open") + " | In progress: " + n("in_progress") + " | Escalated: " + n("escalated") + " | Done: " + n("done");
+  }
+  drawCal();
+}
+
+function drawCal() {
+  const y = calM.getFullYear(), m = calM.getMonth(), todayKey = ymd(new Date());
+  $("calt").textContent = calM.toLocaleString("en", { month: "long", year: "numeric" });
+  let h = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => `<div class="meta">${d}</div>`).join("");
+  for (let i = 0; i < new Date(y, m, 1).getDay(); i++) h += "<div></div>";
+  for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+    const key = y + "-" + String(m+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+    const due = ev.filter(e => e.due_at === key && e.status !== "done").length;
+    const done = ev.filter(e => e.done_at && ymd(new Date(e.done_at)) === key).length;
+    h += `<button class="day${key === todayKey ? " today" : ""}" data-d="${key}" aria-label="${key}">${d}<small>${due ? due + " due" : ""}</small><small>${done ? done + " done" : ""}</small></button>`;
+  }
+  $("cal").innerHTML = h;
+}
+$("cprev").onclick = () => { calM.setMonth(calM.getMonth() - 1); drawCal(); };
+$("cnext").onclick = () => { calM.setMonth(calM.getMonth() + 1); drawCal(); };
+$("cal").onclick = e => {
+  const b = e.target.closest("button[data-d]");
+  if (!b) return;
+  const k = b.dataset.d;
+  const items = ev.filter(x => (x.due_at === k && x.status !== "done") || (x.done_at && ymd(new Date(x.done_at)) === k))
+    .map(x => esc(x.title) + (x.done_at && ymd(new Date(x.done_at)) === k ? " (done)" : " (due)"));
+  $("dayinfo").innerHTML = "<strong>" + k + ":</strong> " + (items.length ? items.join("; ") : "nothing scheduled.");
+};
+
+const saveBlob = (blob, name) => {
+  const l = document.createElement("a");
+  l.href = URL.createObjectURL(blob); l.download = name; l.click();
+  setTimeout(() => URL.revokeObjectURL(l.href), 5000);
+};
+$("csv").onclick = () => {
+  const q = v => { v = String(v ?? ""); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+  const rows = [["Title","From","To","Status","Deadline","Posted","Finished","Translator","Rating","Review"]].concat(
+    lastList.filter(j => j.client_id === me.id).map(j => [j.title, j.source_lang, j.target_lang, j.status, j.due_at || "",
+      j.created_at.slice(0,10), j.done_at ? j.done_at.slice(0,10) : "", j.translator?.full_name || "", j.rating || "", j.review || ""]));
+  saveBlob(new Blob(["\uFEFF" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" }), "my-translation-jobs.csv");
+};
+$("zipall").onclick = async () => {
+  say();
+  const jobs = lastList.filter(j => j.client_id === me.id && j.result_path);
+  if (!jobs.length) return say("No finished translations to download yet.");
+  const zip = new JSZip(); let n = 0;
+  for (const j of jobs) {
+    $("bulkmsg").textContent = "Preparing " + (++n) + " of " + jobs.length + "...";
+    const { data, error } = await db.storage.from("files").download(j.result_path);
+    if (error) { say(error.message); continue; }
+    const ext = (j.result_path.match(/\.[A-Za-z0-9]+$/) || [""])[0];
+    zip.file(String(j.id).padStart(4, "0") + "-" + j.title.replace(/[^\w\- ]+/g, "").trim().slice(0, 60) + ext, data);
+  }
+  $("bulkmsg").textContent = "Building zip...";
+  saveBlob(await zip.generateAsync({ type: "blob" }), "finished-translations.zip");
+  $("bulkmsg").textContent = "Done. " + jobs.length + " file(s) are in the zip.";
+};
+
+$("jobs").onclick = async e => {
+  const b = e.target.closest("button[data-a]");
+  if (!b) return;
+  say();
+  const a = b.dataset.a, id = b.dataset.id, card = b.closest(".job");
+  let res, goOpen = false;
+  if (a === "dl") {
+    const { data, error } = await db.storage.from("files").createSignedUrl(b.dataset.p, 60);
+    if (error) return say(error.message);
+    const l = document.createElement("a"); l.href = data.signedUrl; l.target = "_blank"; l.rel = "noopener"; l.click();
+    return;
+  }
+  const j = cache[id];
+  const notes = () => card.querySelector("textarea")?.value ?? "";
+  const file = () => card.querySelector("input[type=file]")?.files[0];
+  if (a === "accept") res = await db.from("jobs").update({ status: "in_progress", translator_id: me.id, accepted_at: new Date().toISOString() }).eq("id", id);
+  if (a === "draft") {
+    const patch = { draft_notes: notes(), draft_saved_at: new Date().toISOString() };
+    try { const p = await upload(file()); if (p) patch.draft_path = p; } catch { return; }
+    res = await db.from("jobs").update(patch).eq("id", id);
+    if (!res.error) say("Draft saved. You can come back to it later.");
+  }
+  if (a === "done") {
+    const patch = { status: "done", done_at: new Date().toISOString(), draft_notes: notes() };
+    try { const p = await upload(file()); patch.result_path = p || j.draft_path || null; } catch { return; }
+    res = await db.from("jobs").update(patch).eq("id", id);
+  }
+  if (a === "ret") {
+    if (!confirm("Return this job to the queue? Your draft will be discarded.")) return;
+    res = await db.from("jobs").update({ status: "open", translator_id: null, accepted_at: null, draft_notes: null, draft_path: null, draft_saved_at: null }).eq("id", id);
+    goOpen = true;
+  }
+  if (a === "escalate") {
+    const why = prompt("Why are you escalating this job? (for example: sensitive content)");
+    if (!why || !why.trim()) return say("Please give a reason to escalate.");
+    res = await db.from("jobs").update({ status: "escalated", escalation_reason: why.trim(), draft_notes: notes() }).eq("id", id);
+    goOpen = true;
+  }
+  if (a === "reopen") res = await db.from("jobs").update({ status: "open", translator_id: null, accepted_at: null }).eq("id", id);
+  if (a === "edit") {
+    const title = prompt("Title", j.title); if (title === null) return;
+    const description = prompt("Details", j.description); if (description === null) return;
+    res = await db.from("jobs").update({ title: title.trim() || j.title, description }).eq("id", id);
+  }
+  if (a === "del") {
+    if (!confirm("Delete this job? This cannot be undone.")) return;
+    res = await db.from("jobs").delete().eq("id", id);
+  }
+  if (a === "rate") {
+    const review = prompt("Short review (optional)") || "";
+    res = await db.from("jobs").update({ rating: +card.querySelector("select").value, review }).eq("id", id);
+  }
+  if (res && res.error) return say(res.error.message);
+  if (a === "draft") return loadJobs();
+  goOpen ? setFilter("open") : loadJobs();
+};
+
+start();
+</script>
+</body>
+</html>
