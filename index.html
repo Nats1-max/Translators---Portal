@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Translators Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@500;700&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14213d;--muted:#5b667a;--line:#d5dce6;--accent:#0b6e6e;--accent-ink:#fff;--warn:#b3361b}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1522;--card:#17212f;--ink:#e8edf5;--muted:#9aa6ba;--line:#2a3649;--accent:#3fb5b0;--accent-ink:#06201f;--warn:#ff8a70}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line)}
+h1,h2{font-family:Newsreader,Georgia,serif;margin:0}
+h1{font-size:1.5rem}
+main{max-width:860px;margin:0 auto;padding:24px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
+label{display:block;font-size:.9rem;color:var(--muted);margin:12px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button{padding:10px 16px;border:0;border-radius:6px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:12px}.row>*{flex:1}
+.job{border-top:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;gap:16px;align-items:center}
+.job:first-child{border-top:0}
+.pair{font-weight:600;color:var(--accent)}
+.meta{color:var(--muted);font-size:.9rem}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+#msg{color:var(--warn);min-height:1.4em}
+.hide{display:none}
+@media(max-width:560px){.row{flex-direction:column}.job{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><h1>Translators Portal</h1><div><span id="who" class="meta"></span> <button id="out" class="ghost hide">Sign out</button></div></header>
+<main>
+<p id="msg" role="alert"></p>
+
+<section id="auth" class="box">
+  <div class="tabs"><button id="t-in" class="on">Log in</button><button id="t-up" class="ghost">Create account</button></div>
+  <div id="up-only" class="hide">
+    <label for="name">Full name</label><input id="name">
+    <label for="role">I am a</label>
+    <select id="role"><option value="translator">Translator</option><option value="client">Client</option></select>
+    <label for="langs">Languages you translate (translators)</label><input id="langs" placeholder="English, Kinyarwanda, French">
+  </div>
+  <label for="email">Email</label><input id="email" type="email" autocomplete="email">
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+  <p><button id="go">Log in</button></p>
+</section>
+
+<section id="app" class="hide">
+  <div id="post" class="box hide">
+    <h2>Post a translation job</h2>
+    <label for="title">Title</label><input id="title">
+    <div class="row">
+      <div><label for="src">From</label><input id="src" placeholder="English"></div>
+      <div><label for="tgt">To</label><input id="tgt" placeholder="Kinyarwanda"></div>
+    </div>
+    <label for="desc">Details</label><textarea id="desc" rows="3"></textarea>
+    <p><button id="add">Post job</button></p>
+  </div>
+  <div class="box">
+    <div class="tabs"><button id="f-open" class="on">Open jobs</button><button id="f-mine" class="ghost">My jobs</button></div>
+    <div id="jobs"></div>
+  </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://mreouweizwognlkihaar.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4B37RMDIm0iBefdrLMGZaA_5VmD0tlH";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let me = null, profile = null, signup = false, filter = "open";
+
+const say = t => $("msg").textContent = t || "";
+
+function mode(up) {
+  signup = up;
+  $("up-only").classList.toggle("hide", !up);
+  $("go").textContent = up ? "Create account" : "Log in";
+  $("t-up").className = up ? "on" : "ghost";
+  $("t-in").className = up ? "ghost" : "on";
+}
+$("t-in").onclick = () => mode(false);
+$("t-up").onclick = () => mode(true);
+
+$("go").onclick = async () => {
+  say();
+  const email = $("email").value.trim(), password = $("pw").value;
+  if (signup) {
+    const { data, error } = await db.auth.signUp({ email, password, options: { data: {
+      full_name: $("name").value.trim(), role: $("role").value, languages: $("langs").value.trim() } } });
+    if (error) return say(error.message);
+    if (!data.session) return say("Account created. Check your email to confirm, then log in.");
+  } else {
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error) return say(error.message);
+  }
+  start();
+};
+
+$("out").onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return;
+  me = session.user;
+  const { data, error } = await db.from("profiles").select("*").eq("id", me.id).single();
+  if (error) return say("Could not load your profile: " + error.message);
+  profile = data;
+  $("auth").classList.add("hide");
+  $("app").classList.remove("hide");
+  $("out").classList.remove("hide");
+  $("who").textContent = profile.full_name + " (" + profile.role + ")";
+  $("post").classList.toggle("hide", profile.role !== "client");
+  $("f-mine").textContent = "My jobs";
+  loadJobs();
+}
+
+$("add").onclick = async () => {
+  say();
+  const job = { client_id: me.id, title: $("title").value.trim(), source_lang: $("src").value.trim(),
+    target_lang: $("tgt").value.trim(), description: $("desc").value.trim() };
+  if (!job.title || !job.source_lang || !job.target_lang) return say("Add a title and both languages.");
+  const { error } = await db.from("jobs").insert(job);
+  if (error) return say(error.message);
+  ["title","src","tgt","desc"].forEach(i => $(i).value = "");
+  loadJobs();
+};
+
+function setFilter(f) {
+  filter = f;
+  $("f-open").className = f === "open" ? "on" : "ghost";
+  $("f-mine").className = f === "mine" ? "on" : "ghost";
+  loadJobs();
+}
+$("f-open").onclick = () => setFilter("open");
+$("f-mine").onclick = () => setFilter("mine");
+
+async function loadJobs() {
+  let q = db.from("jobs").select("*, client:client_id(full_name), translator:translator_id(full_name)").order("created_at", { ascending: false });
+  q = filter === "open" ? q.eq("status", "open")
+    : q.or("client_id.eq." + me.id + ",translator_id.eq." + me.id);
+  const { data, error } = await q;
+  if (error) return say(error.message);
+  $("jobs").innerHTML = data.length ? data.map(j => {
+    let action = "";
+    if (profile.role === "translator" && j.status === "open") action = `<button data-a="accept" data-id="${j.id}">Accept job</button>`;
+    if (profile.role === "translator" && j.translator_id === me.id && j.status === "in_progress") action = `<button data-a="done" data-id="${j.id}">Mark done</button>`;
+    return `<div class="job"><div>
+      <div><span class="pair">${esc(j.source_lang)} to ${esc(j.target_lang)}</span> &nbsp;${esc(j.title)}</div>
+      <div class="meta">${esc(j.description)}</div>
+      <div class="meta">Client: ${esc(j.client?.full_name)}${j.translator ? " | Translator: " + esc(j.translator.full_name) : ""} | ${esc(j.status.replace("_"," "))}</div>
+    </div><div>${action}</div></div>`;
+  }).join("") : '<p class="meta">No jobs here yet.</p>';
+}
+
+$("jobs").onclick = async e => {
+  const b = e.target.closest("button[data-a]");
+  if (!b) return;
+  say();
+  const patch = b.dataset.a === "accept" ? { status: "in_progress", translator_id: me.id } : { status: "done" };
+  const { error } = await db.from("jobs").update(patch).eq("id", b.dataset.id);
+  if (error) return say(error.message);
+  loadJobs();
+};
+
+start();
+</script>
+</body>
+</html>
